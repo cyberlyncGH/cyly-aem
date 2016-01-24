@@ -1,0 +1,82 @@
+###############################################################################
+# yaml config can be used if you want to create your own aem6-dev-base box.
+###############################################################################
+box_name: "bento/centos-7.2"
+chef_version: "latest"
+gui: false
+memory_size: 4096
+cpus: 2
+port_forwards:
+  - host_port:  4502
+    guest_port: 4502
+  - host_port:  4503 
+    guest_port: 4503
+  - host_port:  8000 
+    guest_port: 80
+  - host_port:  8001
+    guest_port: 8001
+  - host_port:  8002
+    guest_port: 8002
+synced_folders: []
+
+nexus:
+  url: "http://localhost:8081/nexus"
+
+#############################################################################
+## The applications node below defines which applications will be installed
+## into their respective application containers. Each of these applications
+## are pulled from the internal Nexus repository.
+#############################################################################
+applications:
+  aem:
+    version: '6.1.0'
+    download_url: 'file:///vagrant/author61-4502.jar'
+    dispatcher:
+      author:
+        server_aliases: ['author.cyly.local']
+        virtual_hosts: ['author.cyly.local', 'author.cyly.local:8000']
+      publish:
+        server_name: 'cyly.local'
+        server_aliases: ['cyly.local']
+        virtual_hosts: ['cyly.local', 'cyly.local:8000']
+        cache_root: '/opt/communique/dispatcher/cache/publish'
+    aem_options:
+      CQ_HEAP_MAX: "2048"
+      CQ_HEAP_MIN: "1024"
+      CQ_PERMGEN: "256"
+    commands:
+      replicators:
+          agent:
+            remove: "curl -u <%=local_user%>:<%=local_password%> -X DELETE http://localhost:<%=local_port%>/etc/replication/agents.<%=server%>/publish"
+    author:
+      replication_hosts:
+        - ipaddress: 'localhost'
+          port: '4503'
+          user: 'admin'
+          password: 'admin'
+      deploy_pkgs: []
+      jar_opts: [ "-r author local nosamplecontent" ]
+      new_admin_password: 'admin'
+      jvm_opts:
+        "-server": true
+        "-Djava.awt.headless=true": true
+        "-Xdebug": true
+        "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8001": true
+    publish:
+      deploy_pkgs: []
+      new_admin_password: 'admin'
+      jar_opts: ["-r publish local nosamplecontent"]
+      jvm_opts:
+        "-server": true
+        "-Djava.awt.headless=true": true
+        "-Xdebug": true
+        "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8002": true
+    content_packages:
+      author:
+      publish:
+  java:
+    install_flavor: "oracle"
+    jdk_version: "8"
+    oracle:
+      accept_oracle_download_terms: true
+  apache:

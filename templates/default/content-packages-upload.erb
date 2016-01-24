@@ -1,0 +1,63 @@
+#
+# 	usage (to override default variables):
+# 	> CQ_HOST=http://localhost:4502 CQ_PASS=admin ARCHIVE_PATH=./archives INSTALL=Y sh upload-content-packages.sh
+#
+#       You *should* override the CQ_PASS to match the environment.
+#       Also the CQ_HOST should match IP/port of the destination.
+#
+#       As part of (for example) the migration script, you should set INSTALL to "Y"
+#       in case there are existing packages on the server, you can use '-f true' flag to overwrite existing packages
+#
+#
+
+while getopts h:i:f:  opt; do
+  case $opt in
+    h) host=$OPTARG;;
+    i) install=Y;;
+    f) force=true;;
+    [?]) echo >&2 "Usage: $0 -h <http://host:port> -i"
+       exit 1;;
+  esac
+done
+
+if [ -z "$host" ]; then
+  echo >&2 "Required: $0 -h <http://host:port>"
+  exit 1
+fi
+
+: ${CQ_USER:=<%= node['aem']['author']['admin_user'] %>}
+: ${CQ_PASS:=<%= node['aem']['author']['new_admin_password'] %>}
+: ${CQ_HOST:=$host}
+: ${ARCHIVE_PATH:=<%= node['aem']['archive']['content_packages_path'] %>}
+: ${CONTENT_PACKAGES_DEFITION_PATH:=<%= node['aem']['archive']['content_packages_definition_path'] %>}
+: ${INSTALL:=Y}
+: ${FORCE:=true}
+
+upload_package () {
+    echo Upload Content Package $1 $2 to $CQ_HOST
+    if [ -f $ARCHIVE_PATH/$2.zip ]; then
+    	if [ ! "$FORCE" = "true" ] && [ ! "$FORCE" = "false" ]; then
+    		FORCE=false
+    	fi
+		# upload
+		curl -u $CQ_USER:$CQ_PASS -F force=$FORCE -F package=@$ARCHIVE_PATH/$2.zip $CQ_HOST/crx/packmgr/service/.json/?cmd=upload
+
+		# install
+		if [ "$INSTALL" = "Y" ]; then
+			curl -u $CQ_USER:$CQ_PASS -X POST $CQ_HOST/crx/packmgr/service/.json/etc/packages/$1/$2.zip?cmd=install
+		fi
+	else
+		echo "FILE $ARCHIVE_PATH/$2.zip does not exist."
+    fi
+}
+
+## UPLOAD CONTENT PACKAGES ###
+for f in $CONTENT_PACKAGES_DEFITION_PATH/*.txt
+do
+ 	while read group package
+	do
+	 	echo "Processing $f for $CQ_HOST"
+		upload_package $group $package
+
+	done < "$f"
+done

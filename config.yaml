@@ -1,0 +1,36 @@
+###############################################################################
+# common configs
+###############################################################################
+
+box_name: "bento/centos-7.2"
+box_url: "file:///C:/Users/cyberlync/Documents/digitallync/bento/centos-7.2.box"
+chef_version: "latest"
+gui: false
+memory_size: 4096
+cpus: 2
+port_forwards:
+  - host_port:  4502
+    guest_port: 4502
+  - host_port:  4503 
+    guest_port: 4503
+  - host_port:  8000 
+    guest_port: 80    
+synced_folders: []
+
+nexus:
+  url: "http://localhost:8081/nexus"
+
+applications:
+  aem:
+    aem_options:
+      CQ_HEAP_MAX: "1024"
+      CQ_HEAP_MIN: "1024"
+      CQ_PERMGEN: "256"
+    author:
+      deploy_pkgs: []
+      jar_opts: [ "-r author local" ]
+      new_admin_password: "admin"
+    publish:
+      deploy_pkgs: []
+      jar_opts: [ "-r publish local" ]
+      new_admin_password: "admin"

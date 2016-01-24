@@ -1,0 +1,33 @@
+*~
+*#
+.#*
+\#*#
+.*.sw[a-z]
+*.un~
+pkg/
+
+# Berkshelf
+.vagrant
+/cookbooks
+Berksfile.lock
+
+# Bundler
+Gemfile.lock
+bin/*
+.bundle/*
+
+.kitchen/
+.kitchen.local.yml
+
+author-4502.jar
+license.properties
+config_local.yaml
+.user_vagrant.rb
+
+*.DS_Store
+
+# Eclipse
+.project
+*.iml
+author-p4502.jar
+author61-4502.jar

@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# The first argument is the action type: download or upload
+# The second agrument is the full path for the package
+
+if [ "$1" != "download" ] && [ "$1" != "upload" ] ; then
+  echo "Only 'download' and 'upload' action allowed for the first argument."
+  exit 1
+fi
+
+if [ "$2" == "" ]; then
+  echo "A full path to the package is required as the second argument. "
+  exit 1
+fi
+
+PACKAGE_PATH=$2
+# get everything after the last slash in PACKAGE_PATH
+PACKAGE_NAME=${PACKAGE_PATH##*/}
+
+# The host and port of the source server
+SOURCE="localhost:<%= @port %>"
+# The user credentials on the source server (username:password)
+SOURCE_CRED="<%= @admin_user %>:<%= @admin_password %>"
+
+# download or upload package
+if [ $1 == "download" ]; then
+  # Check to see if package exists
+  PACKAGE_EXISTS=`curl -s -u $SOURCE_CRED -X POST http://$SOURCE/crx/packmgr/service/.json$PACKAGE_PATH?cmd=preview`
+
+  if ! echo $PACKAGE_EXISTS | grep '"success":true' > /dev/null; then
+    echo "The package $PACKAGE_NAME does not exist. Please check the package name."
+    exit 1
+  fi
+
+  echo "Building users and groups package"
+  curl -u $SOURCE_CRED -X POST http://$SOURCE/crx/packmgr/service/.json$PACKAGE_PATH?cmd=build
+
+  echo
+  echo "Downloading users and groups package"
+  curl -u $SOURCE_CRED -O http://$SOURCE$PACKAGE_PATH
+elif [ $1 == "upload" ]; then
+  echo
+  echo "Uploading users and groups package"
+  curl -u $SOURCE_CRED -F package=@$PACKAGE_NAME -F force=true http://$SOURCE/crx/packmgr/service/.json/?cmd=upload
+
+  echo
+  echo "Installing users and groups package"
+  curl -u $SOURCE_CRED -X POST http://$SOURCE/crx/packmgr/service/.json$PACKAGE_PATH?cmd=install  
+fi

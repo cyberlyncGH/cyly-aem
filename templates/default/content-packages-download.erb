@@ -1,0 +1,49 @@
+#
+# 	usage (to override default variables):
+#
+# 	> CQ_HOST=http://localhost:4502 CQ_PASS=admin ARCHIVE_PATH=./archives sh download-content-packages.sh
+#
+#       You *should* override the CQ_PASS to match the environment.
+#
+
+while getopts h:r:  opt; do
+  case $opt in
+    h) host=$OPTARG;;
+    r) rebuild=Y;;
+    [?]) echo >&2 "Usage: $0 -h <http://host:port> -r"
+       exit 1;;
+  esac
+done
+
+if [ -z "$host" ]; then
+  echo >&2 "Required: $0 -h <http://host:port>"
+  exit 1
+fi
+
+: ${CQ_USER:=<%= node['aem']['author']['admin_user'] %>}
+: ${CQ_PASS:=<%= node['aem']['author']['new_admin_password'] %>}
+: ${CQ_HOST:=$host}
+: ${ARCHIVE_PATH:=<%= node['aem']['archive']['content_packages_path'] %>}
+: ${CONTENT_PACKAGES_DEFITION_PATH:=<%= node['aem']['archive']['content_packages_definition_path'] %>}
+: ${REBUILD:=Y}
+
+download_package () {
+	echo Rebuild Content Package $1 $2 on $CQ_HOST
+	if [ "$REBUILD" = "Y" ]; then
+		curl -u $CQ_USER:$CQ_PASS -X POST $CQ_HOST/crx/packmgr/service/.json/etc/packages/$1/$2.zip?cmd=build
+	fi
+
+    echo Download Content Package $1 $2 from $CQ_HOST
+	curl -u $CQ_USER:$CQ_PASS $CQ_HOST/etc/packages/$1/$2.zip > $ARCHIVE_PATH/$2.zip
+}
+
+## DOWNLOAD CONTENT PACKAGES ###
+for f in $CONTENT_PACKAGES_DEFITION_PATH/*.txt
+do
+ 	while read group package
+	do
+	 	echo "Downloading $f from $CQ_HOST"
+		download_package $group $package
+
+	done < "$f"
+done
